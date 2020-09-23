@@ -1,7 +1,20 @@
 const express = require('express')
 const app = express()
 const path = require('path');
+const request = require("request");
  
+
+//Mysql 커넥터
+var mysql      = require('mysql');
+var connection = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'root',
+  password : 'ehfhfh12',
+  database : 'fintech'
+});
+connection.connect();
+
+
 app.set("views",__dirname + "/views"); //ejs를 사용하기위한 디렉토리 설정
 app.set("view engine","ejs") //ejs를 사용하기 위한 뷰 엔진
 
@@ -22,6 +35,10 @@ app.get('/hello', function(req,res){
     res.send("Hello 2");
 });
 
+app.get("/signup",function (req,res){
+  res.render("signup");
+});
+
 // #work6 다양한 라우터를 추가해보세요
 app.get("/user",function(req,res){
     res.send("user Data");
@@ -35,6 +52,63 @@ app.post('/getDataTest',function (req, res){
   var userText = req.body.userText;
   console.log(userText);
   res.json("입력값은 : " + userText);
+});
+
+app.get("/authResult",function(req,res){
+  var authCode = req.query.code;
+  console.log(authCode);
+
+  var option = {
+    method: "POST",
+    url: "https://testapi.openbanking.or.kr/oauth/2.0/token",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    //form 형태는 form / 쿼리스트링 형태는 qs / json 형태는 json ***
+    form: {
+      code : authCode,
+      client_id : "DWcVdr677L6iyPzQSfapI8TZq0yph9lDwsamr3Ya",
+      client_secret : "QJ40tWSHO0Yu4LEEercg192EQ8Q7kEzdaj1khbOR",
+      redirect_uri : "http://localhost:3000/authResult",
+      grant_type : "authorization_code"
+    //#자기 키로 시크릿 변경
+    },
+  };
+
+  request(option, function(error,response,body){
+    
+    var accessRequestResult = JSON.parse(body); //JSON 오브젝트를 JS 오브젝트로 변경
+    console.log(accessRequestResult);
+    res.render("resultChild", { data: accessRequestResult });
+  });
+
+});
+
+app.post("/signup", function (req, res) {
+  var userName = req.body.userName;
+  var userEmail = req.body.userEmail;
+  var userPassword = req.body.userPassword;
+  var userAccessToken = req.body.userAccessToken;
+  var userRefreshToken = req.body.userRefreshToken;
+  var userSeqNo = req.body.userSeqNo;
+  console.log(userName, userEmail, userPassword);
+  connection.query(
+    "INSERT INTO `user`(`name`,`email`,`password`,`accesstoken`,`refreshtoken`,`userseqno`)VALUES(?,?,?,?,?,?);",
+    [
+      userName,
+      userEmail,
+      userPassword,
+      userAccessToken,
+      userRefreshToken,
+      userSeqNo,
+    ],
+    function (error, results, fields) {
+      if (error) throw error;
+      else {
+        res.json(1);
+      }
+    }
+  );
 });
 
 app.listen(3000)
