@@ -2,7 +2,9 @@ const express = require('express')
 const app = express()
 const path = require('path');
 const request = require("request");
- 
+var jwt = require('jsonwebtoken');
+var tokenKey = "j1234%!@@!#ekerkqkwasfk"
+var auth = require('./lib/auth');
 
 //Mysql 커넥터
 var mysql      = require('mysql');
@@ -39,6 +41,10 @@ app.get("/signup",function (req,res){
   res.render("signup");
 });
 
+app.get("/login", function (req,res){
+  res.render("login");
+})
+
 // #work6 다양한 라우터를 추가해보세요
 app.get("/user",function(req,res){
     res.send("user Data");
@@ -53,6 +59,10 @@ app.post('/getDataTest',function (req, res){
   console.log(userText);
   res.json("입력값은 : " + userText);
 });
+
+app.get('/authText',auth, function(req,res){
+  res.json("당신은 콘텐츠 접근에 성공했습니다.");
+})
 
 app.get("/authResult",function(req,res){
   var authCode = req.query.code;
@@ -110,5 +120,44 @@ app.post("/signup", function (req, res) {
     }
   );
 });
+
+app.post('/login',function (req,res){
+  var userEmail = req.body.userEmail;
+  var userPassword = req.body.userPassword;
+  console.log(userEmail, userPassword);
+  connection.query("SELECT * FROM user WHERE email = ?",[userEmail],function (error, results,fields){
+    if (error) throw error;
+    else{
+      if(results.length == 0){
+        res.json(2) //아이디 존재하지 않음
+      }else{
+        var storedPassword = results[0].password;
+        if(storedPassword == userPassword){
+          //jwt token 발행하기
+          jwt.sign(
+            {
+              userId: results[0].id,
+              userEmail: results[0].email,
+            },
+            tokenKey,
+            {
+              expiresIn: "10d",
+              issuer: "fintech.admin",
+              subject: "user.login.info",
+            },
+            function (err, token) {
+              console.log("로그인 성공", token);
+              res.json(token);
+            }
+          );
+        }
+        else{
+          res.json("로그인 실패")
+        }
+      }
+    }
+
+  })
+})
 
 app.listen(3000)
