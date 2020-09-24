@@ -43,7 +43,12 @@ app.get("/signup",function (req,res){
 
 app.get("/login", function (req,res){
   res.render("login");
-})
+});
+
+
+app.get("/main",function(req,res){
+  res.render("main");
+});
 
 // #work6 다양한 라우터를 추가해보세요
 app.get("/user",function(req,res){
@@ -60,8 +65,12 @@ app.post('/getDataTest',function (req, res){
   res.json("입력값은 : " + userText);
 });
 
-app.get('/authText',auth, function(req,res){
-  res.json("당신은 콘텐츠 접근에 성공했습니다.");
+// app.get('/authText',auth, function(req,res){
+//   res.json("당신은 콘텐츠 접근에 성공했습니다.");
+// })
+
+app.get("/balance", function(req,res){
+  res.render("balance");
 })
 
 app.get("/authResult",function(req,res){
@@ -158,6 +167,40 @@ app.post('/login',function (req,res){
     }
 
   })
+})
+
+app.post('/list',auth, function(req,res){
+  var userId = req.decoded.userId;
+
+  connection.query(
+    "SELECT * FROM user WHERE id = ?",
+    [
+      userId
+    ],
+    function (error, results) {
+      if (error) throw error;
+      else {
+        var option = {
+          method: "GET",
+          url: "https://testapi.openbanking.or.kr/v2.0/user/me?user_seq_no=1100763463",
+          headers: {
+            Authorization : "Bearer " + results[0].accesstoken,
+          },
+          //form 형태는 form / 쿼리스트링 형태는 qs / json 형태는 json ***
+          qs: {
+            user_seq_no : results[0].userseqno,
+          //#자기 키로 시크릿 변경
+          },
+        };
+        request(option, function(err, response, body){
+          var resResult = JSON.parse(body);
+          res.json(resResult);
+        })
+      }
+    }
+  );
+
+  
 })
 
 app.listen(3000)
