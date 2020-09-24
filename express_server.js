@@ -75,7 +75,8 @@ app.get("/balance", function(req,res){
 
 app.get("/authResult",function(req,res){
   var authCode = req.query.code;
-  console.log(authCode);
+  
+
 
   var option = {
     method: "POST",
@@ -201,6 +202,85 @@ app.post('/list',auth, function(req,res){
   );
 
   
+})
+
+app.post('/balance',auth,function(req,res){
+  var userId = req.decoded.userId;
+  var countnum = Math.floor(Math.random() * 1000000000) + 1;
+  
+  //사용자 정보를 바탕으로 request 요청 만들기
+  connection.query(
+    "SELECT * FROM user WHERE id = ?",
+    [
+      userId
+    ],
+    function (error, results) {
+      if (error) throw error;
+      else {
+        
+        var option = {
+          method: "GET",
+          url: "https://testapi.openbanking.or.kr/v2.0/account/balance/fin_num",
+          headers: {
+            Authorization : "Bearer " + results[0].accesstoken,
+          },
+          //form 형태는 form / 쿼리스트링 형태는 qs / json 형태는 json ***
+          qs: {
+            bank_tran_id : "T991659500U" + countnum,
+            fintech_use_num : req.body.fin_use_num,
+            tran_dtime : "20200923163000",
+          },
+        };
+        request(option, function(err, response, body){
+          var resResult = JSON.parse(body);
+          
+          res.json(resResult);
+        })
+      }
+    }
+  );
+});
+
+app.post("/transactionlist",auth,function (req,res){
+  var userId = req.decoded.userId;
+  var countnum = Math.floor(Math.random() * 1000000000) + 1;
+  
+  //사용자 정보를 바탕으로 request 요청 만들기
+  connection.query(
+    "SELECT * FROM user WHERE id = ?",
+    [
+      userId
+    ],
+    function (error, results) {
+      if (error) throw error;
+      else {
+        
+        var option = {
+          method: "GET",
+          url: "https://testapi.openbanking.or.kr/v2.0/account/transaction_list/fin_num",
+          headers: {
+            Authorization : "Bearer " + results[0].accesstoken,
+          },
+          //form 형태는 form / 쿼리스트링 형태는 qs / json 형태는 json ***
+          qs: {
+            bank_tran_id : "T991659500U" + countnum,
+            fintech_use_num : req.body.fin_use_num,
+            inquiry_type : "A",
+            inquiry_base : "D",
+            from_date : "20181201",
+            to_date : "20190103",
+            sort_order : "D",
+            tran_dtime : "20200923163000",
+          },
+        };
+        request(option, function(err, response, body){
+          var resResult = JSON.parse(body);
+          console.log(resResult);
+          res.json(resResult);
+        })
+      }
+    }
+  );
 })
 
 app.listen(3000)
